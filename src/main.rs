@@ -21,7 +21,7 @@ fn rotate(v: Vec3, yaw: f32, pitch: f32) -> Vec3 {
 }
 
 /// Dibuja todos los triángulos del modelo, centrado y escalado a la pantalla.
-fn render(fb: &mut Framebuffer, vertices: &[Vec3], faces: &[Vec<usize>], yaw: f32, pitch: f32) {
+fn render(fb: &mut Framebuffer, vertices: &[Vec3], faces: &[obj::Face], yaw: f32, pitch: f32) {
     let rotated: Vec<Vec3> = vertices.iter().map(|&v| rotate(v, yaw, pitch)).collect();
 
     // Centro y escala calculados de la caja envolvente del modelo rotado.
@@ -51,17 +51,15 @@ fn render(fb: &mut Framebuffer, vertices: &[Vec3], faces: &[Vec<usize>], yaw: f3
     let light = Vec3::new(0.3, 0.6, -0.75).normalized();
 
     // Recorremos manualmente las caras y las triangulamos (abanico).
-    for face in faces {
+    for f in faces {
+        let face = &f.indices;
         for i in 1..face.len() - 1 {
             let (a, b, c) = (screen[face[0]], screen[face[i]], screen[face[i + 1]]);
             let (ra, rb, rc) = (rotated[face[0]], rotated[face[i]], rotated[face[i + 1]]);
             let normal = (rb - ra).cross(rc - ra).normalized();
             let intensity = (normal.dot(light).abs() * 0.8 + 0.2).clamp(0.0, 1.0);
-            fb.set_color(Color::new(
-                (255.0 * intensity) as u8,
-                (255.0 * intensity) as u8,
-                0,
-            ));
+            let k = |c: u8| (c as f32 * intensity) as u8;
+            fb.set_color(Color::new(k(f.color.r), k(f.color.g), k(f.color.b)));
             triangle::triangle(fb, a, b, c);
         }
     }
